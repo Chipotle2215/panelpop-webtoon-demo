@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111019">
+    <meta name="description" content="A phone-friendly reader demo featuring original, all-ages sample stories.">
+    <title>PanelPop — Stories for every scroll</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #f7f5fb;
+        background: #111019;
+        font-synthesis: none;
+        --muted: #aaa6b8;
+        --panel: #1b1924;
+        --line: #302d3b;
+        --pink: #ff6d9d;
+        --violet: #a78bfa;
+        --reader-size: 1.15rem;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; min-width: 320px; }
+      button, input, select, textarea { font: inherit; }
+      button { color: inherit; }
+      a { color: inherit; text-decoration: none; }
+      button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+        outline: 3px solid #d5b8ff;
+        outline-offset: 3px;
+      }
+      .shell { width: min(1180px, calc(100% - 48px)); margin: 0 auto; }
+      .skip-link { position: fixed; z-index: 20; top: 8px; left: 8px; padding: 10px 14px; border-radius: 8px; background: white; color: #111; transform: translateY(-160%); }
+      .skip-link:focus { transform: translateY(0); }
+      .topbar { position: sticky; z-index: 5; top: 0; border-bottom: 1px solid #ffffff12; background: #111019ef; backdrop-filter: blur(16px); }
+      .nav { min-height: 72px; display: flex; align-items: center; gap: 30px; }
+      .brand { display: inline-flex; flex: none; align-items: center; gap: 10px; font-size: 1.15rem; font-weight: 850; letter-spacing: -.05em; }
+      .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 11px; background: linear-gradient(145deg, #ff7fa9, #a78bfa); color: #17131e; font-size: 1.2rem; }
+      .nav-links { display: flex; align-items: center; gap: 21px; }
+      .nav-links button, .text-button { padding: 7px 0; border: 0; background: transparent; color: #c4c0cd; font-size: .88rem; cursor: pointer; }
+      .nav-links button:hover, .nav-links button[aria-current="page"], .text-button:hover { color: white; }
+      .nav-spacer { flex: 1; }
+      .search-wrap { position: relative; width: min(235px, 24vw); }
+      .search-wrap::before { position: absolute; top: 50%; left: 13px; content: "⌕"; color: #aaa6b8; font-size: 1.3rem; transform: translateY(-55%); pointer-events: none; }
+      .search { width: 100%; padding: 10px 12px 10px 37px; border: 1px solid var(--line); border-radius: 12px; outline: none; background: #1b1924; color: white; }
+      .search:focus { border-color: #a78bfa; box-shadow: 0 0 0 3px #a78bfa25; }
+      .profile { display: grid; flex: none; width: 37px; height: 37px; place-items: center; border: 1px solid #ffffff22; border-radius: 50%; background: linear-gradient(135deg, #ffbd7c, #ff6d9d); color: #241722; font-size: .85rem; font-weight: 800; cursor: pointer; }
+      main { min-height: 72vh; padding: 30px 0 60px; }
+      .prototype-note { margin: 0 0 20px; padding: 11px 14px; border: 1px solid #876fbe66; border-radius: 11px; background: #a78bfa12; color: #ded3f8; font-size: .82rem; line-height: 1.5; }
+      .prototype-note strong { color: white; }
+      .hero { position: relative; display: flex; min-height: 325px; overflow: hidden; align-items: center; padding: clamp(30px, 6vw, 66px); border: 1px solid #ffffff12; border-radius: 24px; background: radial-gradient(ellipse at 79% 50%, #ff8eaa66 0, transparent 22%), radial-gradient(ellipse at 87% 45%, #8f6df477 0, transparent 37%), linear-gradient(115deg, #27203a 0%, #21182f 45%, #39213f 100%); isolation: isolate; }
+      .hero::before, .hero::after { position: absolute; z-index: -1; content: ""; pointer-events: none; }
+      .hero::before { width: 310px; height: 420px; right: 12%; top: -25px; border: 1px solid #ffffff35; border-radius: 48% 48% 14% 14%; background: linear-gradient(150deg, #ffb1b966, #9f72e133 60%, transparent); box-shadow: 0 0 80px #ec85cd30; transform: rotate(12deg); }
+      .hero::after { width: 170px; height: 170px; right: 15%; top: 35px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff8, #fff0 68%); }
+      .hero-copy { max-width: 530px; }
+      .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #ffc2d5; font-size: .76rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      .eyebrow::before { width: 7px; height: 7px; border-radius: 50%; background: var(--pink); content: ""; box-shadow: 0 0 12px var(--pink); }
+      h1 { max-width: 500px; margin: 16px 0 12px; font-size: clamp(2.4rem, 5vw, 4.1rem); line-height: .99; letter-spacing: -.065em; }
+      .hero p { max-width: 440px; margin: 0; color: #d3cadc; line-height: 1.65; }
+      .hero-actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 25px; }
+      .button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border: 1px solid transparent; border-radius: 11px; background: linear-gradient(110deg, #ff789f, #f080c2); color: #271722; font-size: .88rem; font-weight: 800; cursor: pointer; transition: transform .18s, filter .18s; }
+      .button:hover { filter: brightness(1.08); transform: translateY(-2px); }
+      .button.secondary { border-color: #ffffff33; background: #ffffff12; color: white; }
+      .button.quiet { min-height: 36px; border-color: var(--line); background: transparent; color: #e8e4ee; font-weight: 650; }
+      .button.danger { border-color: #a7586766; background: #5b2633; color: #ffe4e9; }
+      .section-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin: 36px 0 17px; }
+      .section-head h2, .page-title { margin: 0; font-size: 1.45rem; letter-spacing: -.04em; }
+      .section-head p, .subtle { margin: 5px 0 0; color: var(--muted); font-size: .88rem; }
+      .genre-list, .toolbar, .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+      .genre, .filter-button { padding: 8px 13px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: #c2bdcb; font-size: .8rem; cursor: pointer; transition: .15s ease; }
+      .genre:hover, .genre[aria-pressed="true"], .filter-button:hover, .filter-button[aria-pressed="true"] { border-color: #b797f7; background: #a78bfa1c; color: #e7dafa; }
+      .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 18px; }
+      .card { min-width: 0; }
+      .cover { position: relative; display: grid; aspect-ratio: .79; overflow: hidden; place-items: center; border: 1px solid #ffffff16; border-radius: 15px; isolation: isolate; transition: transform .2s, box-shadow .2s; }
+      .card:hover .cover { box-shadow: 0 15px 40px #0006; transform: translateY(-3px); }
+      .cover::before { position: absolute; z-index: -1; inset: 0; content: ""; background: var(--art); }
+      .cover::after { position: absolute; z-index: -1; inset: 0; content: ""; background: linear-gradient(180deg, #0000 35%, #100d18cc 100%); }
+      .cover-art { position: absolute; top: 13%; left: 50%; display: grid; width: 47%; aspect-ratio: .75; place-items: center; border: 1px solid #ffffff70; border-radius: 48% 48% 24% 24%; background: linear-gradient(145deg, #ffffff70, #ffffff08 55%); box-shadow: 0 16px 40px #0004; font-size: clamp(2.4rem, 5vw, 4.5rem); transform: translateX(-50%) rotate(-5deg); }
+      .cover-title { position: absolute; right: 12px; bottom: 13px; left: 12px; color: white; font-size: clamp(1.05rem, 2vw, 1.5rem); font-weight: 900; line-height: .98; letter-spacing: -.055em; text-shadow: 0 2px 12px #0009; }
+      .cover-tag { position: absolute; top: 11px; left: 11px; padding: 5px 8px; border: 1px solid #ffffff30; border-radius: 7px; background: #17131b99; color: white; font-size: .64rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+      .card-actions { position: absolute; top: 9px; right: 9px; display: flex; gap: 6px; }
+      .icon-button { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid #ffffff50; border-radius: 50%; background: #17131bcc; font-size: 1rem; cursor: pointer; }
+      .icon-button[aria-pressed="true"] { background: #ff6d9d; color: #25151e; }
+      .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 11px; }
+      .card h3 { overflow: hidden; margin: 0; font-size: .96rem; letter-spacing: -.025em; text-overflow: ellipsis; white-space: nowrap; }
+      .rating { flex: none; color: #ffd37f; font-size: .77rem; }
+      .card-desc { overflow: hidden; margin: 5px 0 0; color: var(--muted); font-size: .79rem; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+      .card-bottom { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; color: #a7a1b2; font-size: .71rem; }
+      .empty { display: none; padding: 42px 20px; border: 1px dashed var(--line); border-radius: 18px; color: var(--muted); text-align: center; }
+      .empty strong { display: block; margin-bottom: 5px; color: white; }
+      .page-panel { padding: clamp(18px, 4vw, 30px); border: 1px solid var(--line); border-radius: 18px; background: #181620; }
+      .page-intro { margin: 8px 0 22px; color: var(--muted); line-height: 1.55; }
+      .history-list, .request-list, .admin-list { display: grid; gap: 12px; margin-top: 18px; }
+      .list-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: #211f2a; }
+      .list-row h3 { margin: 0; font-size: .98rem; }
+      .list-row p { margin: 4px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+      .row-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+      .badge { display: inline-block; padding: 4px 8px; border: 1px solid #8e78bc66; border-radius: 999px; background: #a78bfa16; color: #e0d4f9; font-size: .7rem; font-weight: 700; }
+      .empty-inline { margin: 0; padding: 22px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); text-align: center; }
+      .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .setting { padding: 17px; border: 1px solid var(--line); border-radius: 13px; background: #211f2a; }
+      .setting h3 { margin: 0 0 7px; font-size: .97rem; }
+      .setting p { margin: 0 0 12px; color: var(--muted); font-size: .82rem; line-height: 1.5; }
+      .setting select { width: 100%; padding: 9px 10px; border: 1px solid #484354; border-radius: 9px; background: #17151e; color: white; }
+      .check-row { display: flex; align-items: flex-start; gap: 10px; color: #e2deea; font-size: .86rem; line-height: 1.45; }
+      .check-row input { margin-top: 3px; accent-color: #c4a4ff; }
+      .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .field { display: grid; gap: 6px; }
+      .field.full { grid-column: 1 / -1; }
+      .field label { color: #e2deea; font-size: .83rem; font-weight: 700; }
+      .field input, .field select, .field textarea { width: 100%; padding: 10px 11px; border: 1px solid #484354; border-radius: 9px; background: #17151e; color: white; }
+      .field textarea { min-height: 105px; resize: vertical; }
+      .field .help { color: var(--muted); font-size: .74rem; line-height: 1.45; }
+      .form-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }
+      .reader { --reader-size: 1.15rem; }
+      .reader-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
+      .reader-heading h1 { margin: 0; font-size: clamp(1.5rem, 4vw, 2.2rem); }
+      .reader-heading p { margin: 6px 0 0; color: var(--muted); font-size: .86rem; }
+      .reader-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+      .size-control { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 10px; background: #1b1924; }
+      .size-control button { width: 30px; height: 30px; border: 0; border-radius: 7px; background: transparent; cursor: pointer; }
+      .size-control button:hover { background: #ffffff18; }
+      .size-label { min-width: 42px; color: var(--muted); font-size: .75rem; text-align: center; }
+      .reader-content { width: min(100%, 790px); margin: 0 auto; }
+      .episode-title { padding: 18px; border: 1px solid var(--line); border-radius: 14px 14px 0 0; background: #211f2a; text-align: center; }
+      .episode-title h2 { margin: 0; font-size: 1.1rem; }
+      .episode-title p { margin: 6px 0 0; color: var(--muted); font-size: .79rem; }
+      .story-panel { display: grid; min-height: 210px; place-items: center; padding: clamp(25px, 8vw, 72px); border: 1px solid #ffffff17; border-top: 0; background: var(--panel); text-align: center; }
+      .story-panel:nth-child(odd) { background: #24202f; }
+      .story-panel p { max-width: 580px; margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: var(--reader-size); line-height: 1.8; }
+      .story-panel .panel-mark { margin-bottom: 18px; font-size: 2rem; }
+      .story-end { padding: 28px 18px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px; background: #211f2a; text-align: center; }
+      .story-end p { color: var(--muted); font-size: .88rem; }
+      .contrast { --muted: #d8d8d8; --line: #aaa; color: #fff; background: #000; }
+      .contrast .topbar { background: #000f; }
+      .contrast .hero, .contrast .cover, .contrast .button:not(.secondary):not(.quiet):not(.danger) { filter: grayscale(1); }
+      .contrast .page-panel, .contrast .setting, .contrast .list-row, .contrast .story-panel, .contrast .episode-title, .contrast .story-end { background: #000; border-color: #aaa; }
+      .status { position: fixed; z-index: 10; right: 20px; bottom: 20px; max-width: min(360px, calc(100vw - 40px)); padding: 13px 16px; border: 1px solid #806bb1; border-radius: 12px; background: #27203a; color: white; box-shadow: 0 8px 30px #0008; }
+      .status[hidden], [hidden] { display: none !important; }
+      .footer { margin-top: 48px; padding-top: 19px; border-top: 1px solid var(--line); color: #a7a1b2; font-size: .79rem; line-height: 1.65; }
+      .footer p { margin: 5px 0; }
+      .footer strong { color: #e8e4ee; }
+      dialog { width: min(480px, calc(100% - 28px)); padding: 0; border: 1px solid #554b69; border-radius: 18px; background: #1b1924; color: white; box-shadow: 0 24px 90px #000b; }
+      dialog::backdrop { background: #08070dbb; backdrop-filter: blur(4px); }
+      .dialog-body { padding: 24px; }
+      .dialog-body h2 { margin: 0; font-size: 1.35rem; }
+      .dialog-body p { color: var(--muted); font-size: .88rem; line-height: 1.55; }
+      .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+      @media (max-width: 900px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .nav { gap: 17px; } .nav-links { gap: 13px; } }
+      @media (max-width: 650px) {
+        .shell { width: min(100% - 32px, 500px); }
+        .nav { min-height: 62px; flex-wrap: wrap; gap: 0 12px; padding: 10px 0; }
+        .nav-links { order: 4; width: 100%; justify-content: space-between; gap: 8px; padding-top: 10px; }
+        .nav-links button { font-size: .79rem; }
+        .search-wrap { width: min(180px, 37vw); margin-left: auto; }
+        .profile { width: 33px; height: 33px; }
+        main { padding-top: 19px; }
+        .hero { min-height: 370px; align-items: end; padding: 25px 21px; }
+        .hero::before { right: 1%; top: -130px; }
+        .hero::after { right: 15%; top: 6px; }
+        .hero-copy { position: relative; z-index: 1; }
+        .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 13px; }
+        .section-head { align-items: start; flex-direction: column; }
+        .settings-grid, .form-grid { grid-template-columns: 1fr; }
+        .field.full { grid-column: auto; }
+        .reader-head { align-items: start; flex-direction: column; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <nav class="nav shell" aria-label="Main navigation">
+        <a class="brand" href="#discover" data-view="discover" aria-label="PanelPop home"><span class="brand-mark" aria-hidden="true">▰</span>panelpop</a>
+        <div class="nav-links">
+          <button type="button" data-view="discover" aria-current="page">Discover</button>
+          <button type="button" data-view="library">My Library</button>
+          <button type="button" data-view="history">History</button>
+          <button type="button" data-view="settings">Settings</button>
+        </div>
+        <span class="nav-spacer"></span>
+        <label class="search-wrap">
+          <span hidden>Search original sample stories</span>
+          <input class="search" id="search" type="search" placeholder="Search stories..." autocomplete="off" aria-label="Search stories">
+        </label>
+        <button class="profile" id="signin-button" type="button" aria-label="Sign in information">?</button>
+      </nav>
+    </header>
+
+    <main class="shell" id="main">
+      <p class="prototype-note"><strong>School-safe demo:</strong> original, all-ages sample stories only. This static prototype has no external content, login service, or server; local actions are not production moderation or authentication.</p>
+
+      <section id="view-discover" data-view-panel="discover" aria-labelledby="hero-title">
+        <section class="hero">
+          <div class="hero-copy">
+            <span class="eyebrow">Original stories · all ages</span>
+            <h1 id="hero-title">Stories for every scroll.</h1>
+            <p>Discover small, original stories made for a cozy reading break. No third-party comics or unlicensed artwork.</p>
+            <div class="hero-actions">
+              <button class="button" type="button" data-view="discover" id="explore-button">Explore stories <span aria-hidden="true">↗</span></button>
+              <button class="button secondary" type="button" data-view="request">Request a title</button>
+            </div>
+          </div>
+        </section>
+        <div class="section-head">
+          <div><h2>Fresh stories, just for you</h2><p>Original demo titles, with creator and rating details.</p></div>
+          <div class="genre-list" aria-label="Filter stories by genre">
+            <button class="genre" type="button" aria-pressed="true" data-genre="All">All</button>
+            <button class="genre" type="button" aria-pressed="false" data-genre="Romance">Romance</button>
+            <button class="genre" type="button" aria-pressed="false" data-genre="Fantasy">Fantasy</button>
+            <button class="genre" type="button" aria-pressed="false" data-genre="Drama">Drama</button>
+            <button class="genre" type="button" aria-pressed="false" data-genre="Comedy">Comedy</button>
+          </div>
+        </div>
+        <div class="grid" id="series-grid" aria-live="polite"></div>
+        <div class="empty" id="empty-state" role="status"><strong>No stories found.</strong>Try a different title or genre.</div>
+      </section>
+
+      <section id="view-library" data-view-panel="library" hidden aria-labelledby="library-title">
+        <div class="page-panel">
+          <h1 class="page-title" id="library-title">My library</h1>
+          <p class="page-intro">Your bookmarks and favorites stay in this browser on this device. They are not synced to an account.</p>
+          <div class="filters" aria-label="Filter library">
+            <button class="filter-button" type="button" aria-pressed="true" data-library-filter="all">Everything</button>
+            <button class="filter-button" type="button" aria-pressed="false" data-library-filter="bookmarks">Bookmarks</button>
+            <button class="filter-button" type="button" aria-pressed="false" data-library-filter="favorites">Favorites</button>
+          </div>
+          <div class="grid" id="library-grid"></div>
+          <p class="empty-inline" id="library-empty" hidden>Your library is empty. Save a story from Discover to see it here.</p>
+        </div>
+      </section>
+
+      <section id="view-history" data-view-panel="history" hidden aria-labelledby="history-title">
+        <div class="page-panel">
+          <h1 class="page-title" id="history-title">Reading history</h1>
+          <p class="page-intro">Only your latest reading activity is stored locally. You can clear it here or adjust retention in Settings.</p>
+          <div class="history-list" id="history-list"></div>
+          <button class="button quiet" id="clear-history" type="button">Clear reading history</button>
+        </div>
+      </section>
+
+      <section id="view-reader" data-view-panel="reader" class="reader" hidden aria-labelledby="reader-title">
+        <div class="reader-head">
+          <div class="reader-heading"><h1 id="reader-title">Reader</h1><p id="reader-byline"></p></div>
+          <div class="reader-toolbar">
+            <button class="button quiet" type="button" id="reader-back">← Back to stories</button>
+            <div class="size-control" role="group" aria-label="Adjust story text size">
+              <button type="button" id="text-smaller" aria-label="Decrease text size">A−</button>
+              <span class="size-label" id="size-label" aria-live="polite">100%</span>
+              <button type="button" id="text-larger" aria-label="Increase text size">A+</button>
+            </div>
+            <button class="button quiet" type="button" id="contrast-toggle" aria-pressed="false">High contrast</button>
+          </div>
+        </div>
+        <div class="reader-content" id="reader-content" tabindex="-1"></div>
+      </section>
+
+      <section id="view-settings" data-view-panel="settings" hidden aria-labelledby="settings-title">
+        <div class="page-panel">
+          <h1 class="page-title" id="settings-title">Privacy &amp; reading settings</h1>
+          <p class="page-intro">This demo stores only reading preferences, bookmarks, favorites, and history in your browser. No data is sent to a server.</p>
+          <div class="settings-grid">
+            <div class="setting">
+              <h3>Reading history retention</h3>
+              <p>Automatically remove reading history after the selected period. Your saved library stays until you clear it.</p>
+              <label for="retention">Keep history for</label>
+              <select id="retention">
+                <option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option><option value="0">Until I clear it</option>
+              </select>
+            </div>
+            <div class="setting">
+              <h3>Age-appropriate content</h3>
+              <p>Every story in this demo is rated G · All ages. The teen-content filter is included to demonstrate a future catalog control.</p>
+              <label class="check-row"><input id="hide-teen" type="checkbox"> Hide teen-rated titles</label>
+            </div>
+            <div class="setting">
+              <h3>Reading accessibility</h3>
+              <p>Use the reader controls to adjust text size and high contrast. Keyboard users can tab through controls and press Escape to leave the reader.</p>
+              <button class="button quiet" type="button" data-view="discover">Open reader from a story</button>
+            </div>
+            <div class="setting">
+              <h3>Clear local data</h3>
+              <p>Remove your history, bookmarks, favorites, preferences, and locally submitted review requests from this browser.</p>
+              <button class="button danger" id="clear-all" type="button">Clear all local data</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-request" data-view-panel="request" hidden aria-labelledby="request-title">
+        <div class="page-panel">
+          <h1 class="page-title" id="request-title">Request a title review</h1>
+          <p class="page-intro">Suggest a title for a rights and suitability review. Please include an official creator/publisher page. Do not send passwords, student records, or other sensitive information.</p>
+          <p class="prototype-note">Prototype only: this form does not contact anyone. It stores a short request in this browser for the local admin-demo queue. A real school service needs an approved contact channel and retention policy.</p>
+          <form id="request-form">
+            <div class="form-grid">
+              <div class="field"><label for="request-name">Title name</label><input id="request-name" name="title" maxlength="100" required></div>
+              <div class="field"><label for="request-creator">Creator or publisher</label><input id="request-creator" name="creator" maxlength="100" required></div>
+              <div class="field full"><label for="request-url">Official source URL</label><input id="request-url" name="url" type="url" maxlength="300" placeholder="https://..." required><span class="help">Use an official creator or publisher page; the demo will not fetch this URL.</span></div>
+              <div class="field full"><label for="request-reason">Why should it be reviewed?</label><textarea id="request-reason" name="reason" maxlength="500" required></textarea></div>
+            </div>
+            <div class="form-actions"><button class="button" type="submit">Save review request</button><button class="button quiet" type="button" data-view="discover">Cancel</button></div>
+          </form>
+        </div>
+      </section>
+
+      <section id="view-admin" data-view-panel="admin" hidden aria-labelledby="admin-title">
+        <div class="page-panel">
+          <h1 class="page-title" id="admin-title">Title review dashboard</h1>
+          <p class="prototype-note"><strong>Demo only—not an admin security boundary.</strong> This page is accessible to anyone with the file. Do not use these controls to approve real works or enforce school policy. Production needs staff authentication, audit logs, rights checks, and server-side moderation.</p>
+          <div class="section-head"><div><h2>Local review requests</h2><p>Requests submitted from this browser only.</p></div></div>
+          <div class="request-list" id="admin-requests"></div>
+          <div class="section-head"><div><h2>Demo catalog</h2><p>Remove or restore sample titles in this browser.</p></div><button class="button quiet" id="restore-titles" type="button">Restore demo titles</button></div>
+          <div class="admin-list" id="admin-catalog"></div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p><strong>Content &amp; rights:</strong> PanelPop stories and cover designs here are original demo material © 2026 PanelPop. No external comic API, embed, or licensed catalog is connected. Ratings shown are G · All ages; creators and publication dates are sample metadata.</p>
+        <p><strong>School use:</strong> Before deployment, configure district-approved identity, content sources, moderation, retention, and network/security controls. This static page makes no network requests and cannot enforce a school acceptable-use policy.</p>
+        <p>Browser display cannot prevent screenshots, copying, or redistribution. Use only material whose license permits display; implement any required access restrictions with the rights holder’s approved platform.</p>
+        <div class="toolbar" style="margin-top:12px">
+          <button class="text-button" type="button" data-view="request">Request a title review</button>
+          <button class="text-button" type="button" data-view="admin">Admin demo</button>
+          <button class="text-button" type="button" id="footer-signin">Sign-in setup</button>
+        </div>
+      </footer>
+    </main>
+    <div class="status" id="status" role="status" aria-live="polite" hidden></div>
+    <dialog id="signin-dialog" aria-labelledby="signin-title">
+      <div class="dialog-body">
+        <h2 id="signin-title">Secure sign-in isn’t configured</h2>
+        <p>This frontend demo does not collect credentials. Before real users sign in, connect the school-approved identity provider using secure server-side sessions, role checks, and age-appropriate account settings.</p>
+        <div class="dialog-actions"><button class="button" type="button" id="signin-close">Got it</button></div>
+      </div>
+    </dialog>
+
+    <script>
+      const STORAGE_KEY = "panelpop-demo-v2";
+      const titles = [
+        {
+          id: "moonlight", title: "Moonlight Delivery", genre: "Fantasy", tags: ["Adventure"], rating: "9.8", contentRating: "G · All ages",
+          creator: "PanelPop Studio", published: "2026-03-12", episodes: 12, symbol: "☾", status: "New episode",
+          art: "radial-gradient(ellipse at 50% 30%, #ffdc8a 0 8%, transparent 9%), linear-gradient(145deg, #302a70, #5749a2 50%, #ee8b9b)",
+          description: "A night courier with a very unusual route.",
+          panels: ["At dusk, Mira tied a silver bell to her bicycle. It rang only when a delivery was meant for someone who needed a little hope.", "Tonight’s envelope had no address. Just a tiny painted moon, and a note: “Follow the quietest light.”", "Mira rode past the sleepy shops, over the old bridge, and up the hill where a paper lantern glowed in an empty window.", "A child opened the door. The envelope held a map of the stars—and a message from someone who missed them. The bell gave its softest ring."]
+        },
+        {
+          id: "space", title: "The Space Between Us", genre: "Romance", tags: ["Slice of life"], rating: "9.6", contentRating: "G · All ages",
+          creator: "Jun Park", published: "2026-02-20", episodes: 24, symbol: "♡", status: "Popular",
+          art: "radial-gradient(circle at 70% 22%, #ffe9ba 0 8%, transparent 9%), linear-gradient(145deg, #f47e92, #bd6baf 54%, #563d87)",
+          description: "Two neighbors, one very thin apartment wall.",
+          panels: ["At 7:03 every evening, the wall between apartments 4B and 4C hummed the same three notes.", "Nari answered with a knock. Two quick taps, one slow. The music stopped. A moment later, someone tapped back.", "For weeks, their wall became a tiny mailbox: a recipe, a doodle, a pressed flower. Neither knew the other’s name.", "Then one rainy evening, the notes came from the hallway. Nari opened her door. Across the corridor, someone held two warm cups of tea."]
+        },
+        {
+          id: "train", title: "After the Last Train", genre: "Drama", tags: ["Mystery"], rating: "9.5", contentRating: "G · All ages",
+          creator: "Ari Watanabe", published: "2026-01-08", episodes: 18, symbol: "↗", status: "Editor's pick",
+          art: "radial-gradient(ellipse at 48% 26%, #ffdfb0 0 5%, transparent 6%), linear-gradient(155deg, #23394e, #587486 55%, #c18b7e)",
+          description: "One station. A thousand untold goodbyes.",
+          panels: ["The little station closed at midnight, but its clock had been stopped at 11:58 for as long as anyone remembered.", "Every evening, caretaker Sol swept the platform and collected the notes people left between the benches.", "One note appeared in a familiar hand: “Thank you for waiting.” Sol read it twice, then smiled at the empty tracks.", "The next morning, the station clock ticked forward. On the bench sat a fresh cup of tea, still warm."]
+        },
+        {
+          id: "witch", title: "Witch Please!", genre: "Comedy", tags: ["Fantasy"], rating: "9.4", contentRating: "G · All ages",
+          creator: "Tess Rowan", published: "2026-04-04", episodes: 9, symbol: "✦", status: "New",
+          art: "radial-gradient(circle at 50% 35%, #ffe69b 0 10%, transparent 11%), linear-gradient(145deg, #40a69c, #6c8cdb 56%, #ac72d0)",
+          description: "The worst witch in town starts a potion shop.",
+          panels: ["Pip’s first potion was supposed to make houseplants bloom. It turned the watering can into a very polite frog.", "“Ribbit. Your fern would like a window seat,” said the frog. The fern, somehow, agreed.", "Business was slow until the mayor came in asking for a confidence potion. Pip mixed carefully, measured twice, and sneezed.", "The potion fizzed. The mayor’s shoes began tap-dancing. By the end of the day, the whole town had joined in."]
+        },
+        {
+          id: "wildflower", title: "Wildflower Days", genre: "Romance", tags: ["Drama"], rating: "9.7", contentRating: "G · All ages",
+          creator: "Mina Sol", published: "2025-11-17", episodes: 32, symbol: "✿", status: "Completed",
+          art: "radial-gradient(ellipse at 30% 25%, #fff1bd 0 7%, transparent 8%), linear-gradient(145deg, #73a27e, #b3b06d 55%, #e28787)",
+          description: "A city kid finds a softer kind of summer.",
+          panels: ["Lena arrived in the valley with one suitcase and a list of things she planned to miss about the city.", "The neighbor’s garden was full of wildflowers. Every morning, Jo left a different bloom on the fence between their yards.", "Lena started leaving little paper stars in return. Soon the fence was covered in tiny gifts and notes.", "When summer ended, Lena packed one flower between the pages of her sketchbook—and left the garden gate open."]
+        },
+        {
+          id: "snack", title: "Dungeon Snack Club", genre: "Comedy", tags: ["Adventure"], rating: "9.3", contentRating: "G · All ages",
+          creator: "Moss & Miso", published: "2026-02-02", episodes: 16, symbol: "✧", status: "Trending",
+          art: "radial-gradient(ellipse at 60% 22%, #ffd479 0 9%, transparent 10%), linear-gradient(145deg, #285e53, #63874e 50%, #d29a60)",
+          description: "Adventurers need snacks. These friends deliver.",
+          panels: ["The bravest adventurers in the kingdom feared only one thing: a long quest with no snacks.", "So Toma packed rice cakes, Bea brought berry buns, and Pip brought a suspiciously wiggly pudding.", "Halfway through the dungeon, the pudding bounced away. The whole party chased it through three rooms and a very confused dragon.", "The dragon joined the club. It makes excellent toasted marshmallows."]
+        },
+        {
+          id: "glass", title: "Glass Garden", genre: "Fantasy", tags: ["Mystery"], rating: "9.2", contentRating: "G · All ages",
+          creator: "Lio Chen", published: "2026-05-01", episodes: 7, symbol: "❋", status: "New episode",
+          art: "radial-gradient(circle at 50% 28%, #d8fff3 0 8%, transparent 9%), linear-gradient(145deg, #2e7a78, #67a8a0 50%, #a8c77c)",
+          description: "A greenhouse where forgotten things bloom.",
+          panels: ["Behind the library, a glasshouse appeared every spring. No one remembered building it.", "Inside, lost things grew on vines: a red mitten, a recipe card, a song someone had almost forgotten.", "Eli found a tiny paper boat with their name folded into its sail. They remembered making it with their grandmother.", "The boat unfolded into a note: “Keep making things. I’ll always be cheering.” A new flower opened in the glass."]
+        },
+        {
+          id: "encore", title: "One More Encore", genre: "Drama", tags: ["Music"], rating: "9.5", contentRating: "G · All ages",
+          creator: "Sol Rivera", published: "2025-12-09", episodes: 21, symbol: "♫", status: "Popular",
+          art: "radial-gradient(ellipse at 50% 24%, #ffe8c7 0 7%, transparent 8%), linear-gradient(145deg, #4c355f, #9a547d 52%, #e19379)",
+          description: "A former idol gets one last shot at the stage.",
+          panels: ["For a year, Hana kept her old stage shoes in a box under the bed. The applause felt like a different person's memory.", "At the community center, a group of kids asked if she could teach them one song. Just one.", "Their first rehearsal was wobbly, off-key, and completely wonderful. Hana found herself humming along.", "On show night, she stood backstage in those old shoes. The kids took her hand. The first note felt like coming home."]
+        }
+      ];
+
+      const blankState = () => ({ bookmarks: [], favorites: [], history: [], removed: [], requests: [], retentionDays: 30, hideTeen: false });
+      let state = blankState();
+      let activeGenre = "All";
+      let libraryFilter = "all";
+      let readerTitle = null;
+      let readerTextSize = 100;
+      let toastTimer;
+      const status = document.querySelector("#status");
+      const views = [...document.querySelectorAll("[data-view-panel]")];
+
+      function notify(message) {
+        status.textContent = message;
+        status.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { status.hidden = true; }, 3500);
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          return true;
+        } catch (error) {
+          notify("Could not save local data. Check your browser storage settings.");
+          console.error("PanelPop local storage save failed:", error);
+          return false;
+        }
+      }
+
+      function loadState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+          if (!saved || typeof saved !== "object") return;
+          state = {
+            ...blankState(),
+            bookmarks: Array.isArray(saved.bookmarks) ? saved.bookmarks.filter(id => titles.some(title => title.id === id)) : [],
+            favorites: Array.isArray(saved.favorites) ? saved.favorites.filter(id => titles.some(title => title.id === id)) : [],
+            history: Array.isArray(saved.history) ? saved.history.filter(item => item && titles.some(title => title.id === item.id) && Number.isFinite(item.at)) : [],
+            removed: Array.isArray(saved.removed) ? saved.removed.filter(id => titles.some(title => title.id === id)) : [],
+            requests: Array.isArray(saved.requests) ? saved.requests.filter(item => item && typeof item.title === "string" && typeof item.creator === "string" && typeof item.url === "string" && typeof item.reason === "string") : [],
+            retentionDays: [0, 7, 30, 90].includes(saved.retentionDays) ? saved.retentionDays : 30,
+            hideTeen: saved.hideTeen === true
+          };
+          if (state.retentionDays > 0) {
+            const cutoff = Date.now() - state.retentionDays * 86400000;
+            state.history = state.history.filter(item => item.at >= cutoff);
+          }
+        } catch (error) {
+          state = blankState();
+          notify("Saved browser data could not be read; starting with an empty demo.");
+          console.error("PanelPop local storage read failed:", error);
+        }
+      }
+
+      function visibleTitles() {
+        return titles.filter(title => !state.removed.includes(title.id) && !(state.hideTeen && title.contentRating.startsWith("Teen")));
+      }
+
+      function makeCard(title) {
+        const card = document.createElement("article");
+        card.className = "card";
+        const cover = document.createElement("div");
+        cover.className = "cover";
+        cover.style.setProperty("--art", title.art);
+        cover.setAttribute("role", "img");
+        cover.setAttribute("aria-label", `${title.title} cover artwork: abstract color illustration with ${title.symbol}`);
+        const tag = document.createElement("span");
+        tag.className = "cover-tag";
+        tag.textContent = title.status;
+        cover.append(tag);
+        const actions = document.createElement("div");
+        actions.className = "card-actions";
+        for (const [kind, label, icon, active] of [
+          ["bookmark", "Bookmark", "♡", state.bookmarks.includes(title.id)],
+          ["favorite", "Favorite", "★", state.favorites.includes(title.id)]
+        ]) {
+          const button = document.createElement("button");
+          button.className = "icon-button";
+          button.type = "button";
+          button.dataset.action = kind;
+          button.dataset.titleId = title.id;
+          button.setAttribute("aria-label", `${active ? "Remove" : "Add"} ${title.title} ${label.toLowerCase()}`);
+          button.setAttribute("aria-pressed", String(active));
+          button.textContent = active ? (kind === "bookmark" ? "♥" : "★") : icon;
+          actions.append(button);
+        }
+        cover.append(actions);
+        const art = document.createElement("span");
+        art.className = "cover-art";
+        art.setAttribute("aria-hidden", "true");
+        art.textContent = title.symbol;
+        cover.append(art);
+        const coverTitle = document.createElement("span");
+        coverTitle.className = "cover-title";
+        coverTitle.textContent = title.title.toUpperCase();
+        cover.append(coverTitle);
+        const meta = document.createElement("div");
+        meta.className = "card-meta";
+        const heading = document.createElement("h3");
+        heading.textContent = title.title;
+        const rating = document.createElement("span");
+        rating.className = "rating";
+        rating.textContent = `★ ${title.rating}`;
+        meta.append(heading, rating);
+        const desc = document.createElement("p");
+        desc.className = "card-desc";
+        desc.textContent = title.description;
+        const bottom = document.createElement("div");
+        bottom.className = "card-bottom";
+        const genre = document.createElement("span");
+        genre.textContent = `${title.genre} · ${title.contentRating}`;
+        const episodes = document.createElement("span");
+        episodes.textContent = `${title.episodes} eps`;
+        bottom.append(genre, episodes);
+        const details = document.createElement("p");
+        details.className = "card-desc";
+        details.textContent = `By ${title.creator} · Published ${title.published}`;
+        const read = document.createElement("button");
+        read.type = "button";
+        read.className = "button quiet";
+        read.style.marginTop = "10px";
+        read.dataset.readId = title.id;
+        read.textContent = "Read sample";
+        card.append(cover, meta, desc, bottom, details, read);
+        return card;
+      }
+
+      function renderCatalog() {
+        const query = document.querySelector("#search").value.trim().toLowerCase();
+        const grid = document.querySelector("#series-grid");
+        grid.replaceChildren();
+        let matches = 0;
+        for (const title of visibleTitles()) {
+          const genreMatches = activeGenre === "All" || title.genre === activeGenre || title.tags.includes(activeGenre);
+          const queryMatches = `${title.title} ${title.creator} ${title.genre} ${title.description}`.toLowerCase().includes(query);
+          if (!genreMatches || !queryMatches) continue;
+          grid.append(makeCard(title));
+          matches++;
+        }
+        document.querySelector("#empty-state").style.display = matches ? "none" : "block";
+      }
+
+      function renderLibrary() {
+        const grid = document.querySelector("#library-grid");
+        grid.replaceChildren();
+        const matches = visibleTitles().filter(title => {
+          if (libraryFilter === "bookmarks") return state.bookmarks.includes(title.id);
+          if (libraryFilter === "favorites") return state.favorites.includes(title.id);
+          return state.bookmarks.includes(title.id) || state.favorites.includes(title.id);
+        });
+        for (const title of matches) grid.append(makeCard(title));
+        document.querySelector("#library-empty").hidden = matches.length > 0;
+      }
+
+      function formatDate(timestamp) {
+        return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(timestamp));
+      }
+
+      function renderHistory() {
+        const list = document.querySelector("#history-list");
+        list.replaceChildren();
+        const entries = [...state.history].sort((a, b) => b.at - a.at);
+        if (!entries.length) {
+          const empty = document.createElement("p");
+          empty.className = "empty-inline";
+          empty.textContent = "No reading history yet. Open a sample story to get started.";
+          list.append(empty);
+        }
+        for (const item of entries) {
+          const title = titles.find(entry => entry.id === item.id);
+          if (!title) continue;
+          const row = document.createElement("div");
+          row.className = "list-row";
+          const content = document.createElement("div");
+          const heading = document.createElement("h3");
+          heading.textContent = title.title;
+          const meta = document.createElement("p");
+          meta.textContent = `Sample episode · Last opened ${formatDate(item.at)}`;
+          content.append(heading, meta);
+          const button = document.createElement("button");
+          button.className = "button quiet";
+          button.type = "button";
+          button.dataset.readId = title.id;
+          button.textContent = "Continue reading";
+          row.append(content, button);
+          list.append(row);
+        }
+      }
+
+      function renderAdmin() {
+        const requestList = document.querySelector("#admin-requests");
+        requestList.replaceChildren();
+        if (!state.requests.length) {
+          const empty = document.createElement("p");
+          empty.className = "empty-inline";
+          empty.textContent = "No review requests are saved in this browser.";
+          requestList.append(empty);
+        }
+        for (const [index, request] of state.requests.entries()) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+          const content = document.createElement("div");
+          const heading = document.createElement("h3");
+          heading.textContent = request.title;
+          const meta = document.createElement("p");
+          meta.textContent = `${request.creator} · ${request.url} · ${request.reason}`;
+          const label = document.createElement("span");
+          label.className = "badge";
+          label.textContent = request.status || "Pending review";
+          content.append(heading, meta, label);
+          const actions = document.createElement("div");
+          actions.className = "row-actions";
+          for (const [decision, labelText] of [["Approved (demo)", "Approve (demo)"], ["Unsuitable (demo)", "Mark unsuitable"], ["Pending review", "Reset"]]) {
+            const review = document.createElement("button");
+            review.type = "button";
+            review.className = decision === "Unsuitable (demo)" ? "button danger" : "button quiet";
+            review.dataset.reviewIndex = String(index);
+            review.dataset.reviewStatus = decision;
+            review.textContent = labelText;
+            review.setAttribute("aria-pressed", String(request.status === decision));
+            actions.append(review);
+          }
+          row.append(content, actions);
+          requestList.append(row);
+        }
+        const catalog = document.querySelector("#admin-catalog");
+        catalog.replaceChildren();
+        for (const title of titles) {
+          const row = document.createElement("div");
+          row.className = "list-row";
+          const content = document.createElement("div");
+          const heading = document.createElement("h3");
+          heading.textContent = title.title;
+          const meta = document.createElement("p");
+          meta.textContent = `${title.creator} · ${title.contentRating} · ${state.removed.includes(title.id) ? "Hidden in this browser" : "Visible in demo catalog"}`;
+          content.append(heading, meta);
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = state.removed.includes(title.id) ? "button quiet" : "button danger";
+          button.dataset.removeId = title.id;
+          button.textContent = state.removed.includes(title.id) ? "Restore sample" : "Hide sample";
+          row.append(content, button);
+          catalog.append(row);
+        }
+      }
+
+      function renderAll() {
+        renderCatalog();
+        renderLibrary();
+        renderHistory();
+        renderAdmin();
+      }
+
+      function setView(name) {
+        if (!document.querySelector(`[data-view-panel="${name}"]`)) return;
+        for (const section of views) section.hidden = section.dataset.viewPanel !== name;
+        for (const button of document.querySelectorAll(".nav-links [data-view]")) {
+          if (button.dataset.view === name) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        }
+        if (name === "library") renderLibrary();
+        if (name === "history") renderHistory();
+        if (name === "admin") renderAdmin();
+        if (name === "reader") document.querySelector("#reader-content").focus();
+        else document.querySelector("#main").focus({ preventScroll: true });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function openReader(id) {
+        const title = titles.find(item => item.id === id && !state.removed.includes(id));
+        if (!title) {
+          notify("That sample title is no longer available.");
+          return;
+        }
+        readerTitle = title;
+        state.history = state.history.filter(item => item.id !== title.id);
+        state.history.push({ id: title.id, at: Date.now() });
+        state.history = state.history.slice(-30);
+        saveState();
+        document.querySelector("#reader-title").textContent = title.title;
+        document.querySelector("#reader-byline").textContent = `By ${title.creator} · ${title.contentRating} · Published ${title.published}`;
+        const content = document.querySelector("#reader-content");
+        content.replaceChildren();
+        const episode = document.createElement("header");
+        episode.className = "episode-title";
+        const episodeHeading = document.createElement("h2");
+        episodeHeading.textContent = "Sample episode · A small beginning";
+        const episodeInfo = document.createElement("p");
+        episodeInfo.textContent = `Original demo story © 2026 PanelPop · ${title.creator}`;
+        episode.append(episodeHeading, episodeInfo);
+        content.append(episode);
+        for (const [index, text] of title.panels.entries()) {
+          const panel = document.createElement("section");
+          panel.className = "story-panel";
+          panel.setAttribute("aria-label", `Story panel ${index + 1} of ${title.panels.length}`);
+          const para = document.createElement("p");
+          para.textContent = text;
+          panel.append(para);
+          content.append(panel);
+        }
+        const end = document.createElement("footer");
+        end.className = "story-end";
+        const endText = document.createElement("p");
+        endText.textContent = "End of sample · Original text created for this demo. All rights reserved.";
+        const back = document.createElement("button");
+        back.type = "button";
+        back.className = "button";
+        back.dataset.view = "discover";
+        back.textContent = "Back to stories";
+        end.append(endText, back);
+        content.append(end);
+        setView("reader");
+        renderHistory();
+      }
+
+      function toggleSet(listName, id) {
+        const list = state[listName];
+        state[listName] = list.includes(id) ? list.filter(value => value !== id) : [...list, id];
+        saveState();
+        renderCatalog();
+        renderLibrary();
+      }
+
+      document.addEventListener("click", event => {
+        const target = event.target.closest("button");
+        if (!target) return;
+        if (target.dataset.view) {
+          setView(target.dataset.view);
+          return;
+        }
+        if (target.dataset.readId) {
+          openReader(target.dataset.readId);
+          return;
+        }
+        if (target.dataset.action === "bookmark" || target.dataset.action === "favorite") {
+          const listName = target.dataset.action === "bookmark" ? "bookmarks" : "favorites";
+          toggleSet(listName, target.dataset.titleId);
+          return;
+        }
+        if (target.dataset.reviewIndex !== undefined) {
+          const request = state.requests[Number(target.dataset.reviewIndex)];
+          if (!request) return;
+          request.status = target.dataset.reviewStatus || "Pending review";
+          saveState();
+          renderAdmin();
+          notify("Updated local demo status only; no real title was approved or published.");
+          return;
+        }
+        if (target.dataset.removeId) {
+          const id = target.dataset.removeId;
+          state.removed = state.removed.includes(id) ? state.removed.filter(value => value !== id) : [...state.removed, id];
+          saveState();
+          renderAll();
+          notify("Updated local demo catalog visibility.");
+        }
+      });
+
+      document.querySelector("#search").addEventListener("input", renderCatalog);
+      for (const button of document.querySelectorAll(".genre")) {
+        button.addEventListener("click", () => {
+          activeGenre = button.dataset.genre;
+          for (const item of document.querySelectorAll(".genre")) item.setAttribute("aria-pressed", String(item === button));
+          renderCatalog();
+        });
+      }
+      for (const button of document.querySelectorAll("[data-library-filter]")) {
+        button.addEventListener("click", () => {
+          libraryFilter = button.dataset.libraryFilter;
+          for (const item of document.querySelectorAll("[data-library-filter]")) item.setAttribute("aria-pressed", String(item === button));
+          renderLibrary();
+        });
+      }
+      document.querySelector("#reader-back").addEventListener("click", () => setView("discover"));
+      document.querySelector("#text-smaller").addEventListener("click", () => {
+        readerTextSize = Math.max(80, readerTextSize - 10);
+        document.querySelector(".reader").style.setProperty("--reader-size", `${readerTextSize / 100 * 1.15}rem`);
+        document.querySelector("#size-label").textContent = `${readerTextSize}%`;
+      });
+      document.querySelector("#text-larger").addEventListener("click", () => {
+        readerTextSize = Math.min(150, readerTextSize + 10);
+        document.querySelector(".reader").style.setProperty("--reader-size", `${readerTextSize / 100 * 1.15}rem`);
+        document.querySelector("#size-label").textContent = `${readerTextSize}%`;
+      });
+      document.querySelector("#contrast-toggle").addEventListener("click", event => {
+        const enabled = document.body.classList.toggle("contrast");
+        event.currentTarget.setAttribute("aria-pressed", String(enabled));
+        event.currentTarget.textContent = enabled ? "Standard contrast" : "High contrast";
+      });
+      document.querySelector("#clear-history").addEventListener("click", () => {
+        state.history = [];
+        saveState();
+        renderHistory();
+        notify("Reading history cleared from this browser.");
+      });
+      document.querySelector("#clear-all").addEventListener("click", () => {
+        if (!window.confirm("Clear all PanelPop demo data saved in this browser?")) return;
+        state = blankState();
+        saveState();
+        document.querySelector("#retention").value = String(state.retentionDays);
+        document.querySelector("#hide-teen").checked = false;
+        renderAll();
+        notify("All PanelPop demo data cleared from this browser.");
+      });
+      document.querySelector("#retention").addEventListener("change", event => {
+        state.retentionDays = Number(event.target.value);
+        if (state.retentionDays > 0) {
+          const cutoff = Date.now() - state.retentionDays * 86400000;
+          state.history = state.history.filter(item => item.at >= cutoff);
+        }
+        saveState();
+        renderHistory();
+        notify("History retention preference saved locally.");
+      });
+      document.querySelector("#hide-teen").addEventListener("change", event => {
+        state.hideTeen = event.target.checked;
+        saveState();
+        renderCatalog();
+        notify("Age filter preference saved locally.");
+      });
+      document.querySelector("#request-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        if (!form.reportValidity()) return;
+        const values = new FormData(form);
+        state.requests.push({
+          title: String(values.get("title")).trim(),
+          creator: String(values.get("creator")).trim(),
+          url: String(values.get("url")).trim(),
+          reason: String(values.get("reason")).trim(),
+          status: "Pending review"
+        });
+        state.requests = state.requests.slice(-20);
+        if (!saveState()) return;
+        form.reset();
+        renderAdmin();
+        notify("Saved on this device only; the request was not sent.");
+        setView("admin");
+      });
+      document.querySelector("#restore-titles").addEventListener("click", () => {
+        state.removed = [];
+        saveState();
+        renderAll();
+        notify("Restored demo titles in this browser.");
+      });
+      const signinDialog = document.querySelector("#signin-dialog");
+      document.querySelector("#signin-button").addEventListener("click", () => signinDialog.showModal());
+      document.querySelector("#footer-signin").addEventListener("click", () => signinDialog.showModal());
+      document.querySelector("#signin-close").addEventListener("click", () => signinDialog.close());
+      signinDialog.addEventListener("click", event => {
+        if (event.target === signinDialog) signinDialog.close();
+      });
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !signinDialog.open && !document.querySelector("#view-reader").hidden) setView("discover");
+      });
+
+      loadState();
+      document.querySelector("#retention").value = String(state.retentionDays);
+      document.querySelector("#hide-teen").checked = state.hideTeen;
+      renderAll();
+    </script>
+  </body>
+</html>
